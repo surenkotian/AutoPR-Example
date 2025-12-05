@@ -1,6 +1,7 @@
 import json
 import click
 from typing import Optional
+from loguru import logger
 
 from autopr.llm import llm
 from autopr import reviewer
@@ -19,6 +20,7 @@ def cli():
 @click.option("--issue", required=False, help="Linked issue id or url")
 def generate(diff: str, commits: tuple[str, ...], issue: Optional[str]):
     """Generate PR title/description (mock)"""
+    logger.info("Generating PR description via CLI...")
     commits_list = list(commits) if commits else []
     out = generate_pr_from(diff, commits_list, issue)
     click.echo(json.dumps(out, indent=2))
@@ -32,6 +34,7 @@ def generate(diff: str, commits: tuple[str, ...], issue: Optional[str]):
 @click.option("--coverage-before", required=False, help="Path to a coverage report for baseline")
 @click.option("--coverage-after", required=False, help="Path to a coverage report for PR run")
 def review(diff: str, commits: tuple[str, ...], issue: str | None, test_log: str | None, coverage_before: str | None, coverage_after: str | None):
+    logger.info("Reviewing PR via CLI...")
     # Gather options passed by Click
     commits_list = list(commits) if commits else []
 

@@ -1,6 +1,7 @@
 from typing import List, Optional
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
+from loguru import logger
 
 from autopr.llm import llm
 from autopr import generator
@@ -55,6 +56,7 @@ def generate_pr(req: GenerateRequest):
     This endpoint uses the configured LLM provider (or the stub in dev) to return a JSON object
     describing the PR title, what changed, why it changed, impacted files, tests, risk level and rollback plan.
     """
+    logger.info("Generating PR summary...")
     desc = generator.generate_pr_from(req.diff, req.commits, req.issue)
     # Ensure we return a shape matching the model - if provider returns a 'raw' fallback, adapt it
     if isinstance(desc, dict) and "title" in desc:
@@ -77,5 +79,6 @@ def review_pr(req: ReviewRequest):
 
     The review output includes a brief summary, list of findings, each optionally annotated with a severity, and an overall confidence.
     """
+    logger.info("Reviewing PR code...")
     out = reviewer.review_pr(req.diff)
     return out

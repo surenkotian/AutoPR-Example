@@ -7,3 +7,4 @@ openai>=1.0.0
 # The Anthropic python package currently publishes versions under 0.xx; pin to a matching range
 anthropic>=0.75.0,<1.0.0
 python-dotenv>=1.0.0
+loguru>=0.7.0
