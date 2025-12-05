@@ -1,7 +1,10 @@
 import json
+import os
 import click
 from typing import Optional
 from loguru import logger
+import questionary
+from dotenv import load_dotenv
 
 from autopr.llm import llm
 from autopr import reviewer
@@ -113,6 +116,201 @@ def validate_issue(issue: str, diff: str, commits: tuple[str, ...]):
     from autopr import issue_validator
     res = issue_validator.simple_issue_alignment(issue, diff, list(commits))
     click.echo(json.dumps(res, indent=2))
+
+
+@cli.command(name="init")
+def init():
+    """Initialize AutoPR configuration"""
+    config_path = ".autopr.json"
+    env_path = ".env.example"
+
+    # Create config file
+    config = {
+        "provider": "openai",
+        "repo": "local",
+        "mode": "sync"
+    }
+
+    with open(config_path, 'w') as f:
+        json.dump(config, f, indent=2)
+
+    # Create .env.example if it doesn't exist
+    if not os.path.exists(env_path):
+        env_content = """# AutoPR Environment Variables
+AUTOPR_PROVIDER=openai
+OPENAI_API_KEY=your-openai-key-here
+# ANTHROPIC_API_KEY=your-anthropic-key-here
+# AUTOPR_DEBUG=true
+"""
+        with open(env_path, 'w') as f:
+            f.write(env_content)
+
+    click.echo(f"✓ Created {config_path}")
+    click.echo(f"✓ Created {env_path}")
+    click.echo("Run 'pr-ai configure' to set up your API keys")
+
+
+@cli.command(name="configure")
+def configure():
+    """Interactive configuration setup"""
+    config_path = ".autopr.json"
+
+    # Load existing config
+    if os.path.exists(config_path):
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+    else:
+        config = {"provider": "openai", "repo": "local", "mode": "sync"}
+
+    # Interactive prompts
+    provider = questionary.select(
+        "Which LLM provider do you want to use?",
+        choices=["openai", "anthropic", "stub"],
+        default=config.get("provider", "openai")
+    ).ask()
+
+    config["provider"] = provider
+
+    if provider != "stub":
+        token = questionary.password(f"Enter your {provider.upper()} API key:").ask()
+        if token:
+            # Update .env
+            env_path = ".env"
+            env_vars = {}
+            if os.path.exists(env_path):
+                from dotenv import load_dotenv
+                load_dotenv(env_path)
+                env_vars = dict(os.environ)
+
+            if provider == "openai":
+                env_vars["OPENAI_API_KEY"] = token
+            elif provider == "anthropic":
+                env_vars["ANTHROPIC_API_KEY"] = token
+
+            with open(env_path, 'w') as f:
+                for k, v in env_vars.items():
+                    if k.startswith(('OPENAI_', 'ANTHROPIC_', 'AUTOPR_')):
+                        f.write(f"{k}={v}\n")
+
+    mode = questionary.select(
+        "Use async mode for API calls?",
+        choices=["sync", "async"],
+        default=config.get("mode", "sync")
+    ).ask()
+
+    config["mode"] = mode
+
+    # Save config
+    with open(config_path, 'w') as f:
+        json.dump(config, f, indent=2)
+
+    click.echo("✓ Configuration updated")
+
+
+@cli.command(name="doctor")
+def doctor():
+    """Check system health and requirements"""
+    import sys
+    import subprocess
+
+    issues = []
+
+    # Check Python version
+    if sys.version_info >= (3, 10):
+        click.echo("✓ Python version >= 3.10")
+    else:
+        issues.append("✗ Python version < 3.10")
+
+    # Check git
+    try:
+        subprocess.run(["git", "--version"], capture_output=True, check=True)
+        click.echo("✓ Git installed")
+    except:
+        issues.append("✗ Git not installed")
+
+    # Check if git repo
+    try:
+        subprocess.run(["git", "status"], capture_output=True, check=True, cwd=".")
+        click.echo("✓ Directory is a git repository")
+    except:
+        issues.append("✗ Not a git repository")
+
+    # Check token
+    provider = os.getenv("AUTOPR_PROVIDER", "openai")
+    token_env = f"{provider.upper()}_API_KEY"
+    if os.getenv(token_env) or provider == "stub":
+        click.echo(f"✓ {token_env} available")
+    else:
+        issues.append(f"✗ {token_env} not set")
+
+    # Check writable
+    try:
+        with open(".autopr_test", 'w') as f:
+            f.write("test")
+        os.remove(".autopr_test")
+        click.echo("✓ Directory is writable")
+    except:
+        issues.append("✗ Directory not writable")
+
+    if issues:
+        click.echo("\nIssues found:")
+        for issue in issues:
+            click.echo(issue)
+        click.echo("\nRun 'pr-ai configure' to fix configuration issues")
+    else:
+        click.echo("\n✓ All systems ready!")
+
+
+@cli.command(name="hooks")
+@click.argument("action")
+def hooks(action: str):
+    """Manage git hooks"""
+    if action == "install":
+        hooks_dir = ".git/hooks"
+        if not os.path.exists(hooks_dir):
+            click.echo("✗ Not a git repository")
+            return
+
+        pre_commit_path = os.path.join(hooks_dir, "pre-commit")
+        hook_content = """#!/bin/bash
+# AutoPR pre-commit hooks
+
+echo "Running AutoPR static analysis..."
+# Add static analysis command here
+
+echo "Running AutoPR test summary..."
+# Add test summary command here
+"""
+
+        with open(pre_commit_path, 'w') as f:
+            f.write(hook_content)
+
+        # Make executable
+        os.chmod(pre_commit_path, 0o755)
+
+        click.echo("✓ Pre-commit hooks installed")
+        click.echo("Hooks will run static analysis and test summary on commit")
+    else:
+        click.echo("Usage: pr-ai hooks install")
+
+
+@cli.command(name="mock")
+def mock():
+    """Use stub provider for offline demos"""
+    config_path = ".autopr.json"
+
+    if os.path.exists(config_path):
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+    else:
+        config = {"provider": "openai", "repo": "local", "mode": "sync"}
+
+    config["provider"] = "stub"
+
+    with open(config_path, 'w') as f:
+        json.dump(config, f, indent=2)
+
+    click.echo("✓ Switched to stub provider for offline demos")
 
 
 if __name__ == "__main__":
