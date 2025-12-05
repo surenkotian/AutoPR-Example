@@ -221,24 +221,17 @@ def configure():
     if provider != "stub":
         token = questionary.password(f"Enter your {provider.upper()} API key:").ask()
         if token:
-            # Update .env file
+            # Use dotenv to set the API key
+            from dotenv import set_key
             env_path = ".env"
-            env_lines = []
 
-            # Read existing .env if it exists
-            if os.path.exists(env_path):
-                with open(env_path, 'r') as f:
-                    env_lines = f.readlines()
+            # Ensure .env file exists
+            if not os.path.exists(env_path):
+                with open(env_path, 'w') as f:
+                    f.write("")
 
-            # Remove existing API key lines
-            env_lines = [line for line in env_lines if not line.startswith(f"{provider.upper()}_API_KEY=")]
-
-            # Add the new API key
-            env_lines.append(f"{provider.upper()}_API_KEY={token}\n")
-
-            # Write back to .env
-            with open(env_path, 'w') as f:
-                f.writelines(env_lines)
+            # Set the API key
+            set_key(env_path, f"{provider.upper()}_API_KEY", token)
 
     mode = questionary.select(
         "Use async mode for API calls?",
@@ -253,23 +246,16 @@ def configure():
         json.dump(config, f, indent=2)
 
     # Also set AUTOPR_PROVIDER in .env
+    from dotenv import set_key
     env_path = ".env"
-    env_lines = []
 
-    # Read existing .env if it exists
-    if os.path.exists(env_path):
-        with open(env_path, 'r') as f:
-            env_lines = f.readlines()
+    # Ensure .env file exists
+    if not os.path.exists(env_path):
+        with open(env_path, 'w') as f:
+            f.write("")
 
-    # Remove existing AUTOPR_PROVIDER line
-    env_lines = [line for line in env_lines if not line.startswith("AUTOPR_PROVIDER=")]
-
-    # Add AUTOPR_PROVIDER
-    env_lines.append(f"AUTOPR_PROVIDER={provider}\n")
-
-    # Write back to .env
-    with open(env_path, 'w') as f:
-        f.writelines(env_lines)
+    # Set the provider
+    set_key(env_path, "AUTOPR_PROVIDER", provider)
 
     click.echo("✓ Configuration updated")
 
