@@ -51,6 +51,7 @@ Issues = "https://github.com/surenkotian/AutoPR/issues"
 Changelog = "https://github.com/surenkotian/AutoPR/blob/main/CHANGELOG.md"
 
 [project.scripts]
+autopr = "autopr.cli:cli"
 pr-ai = "autopr.cli:cli"
 
 [tool.setuptools.packages.find]
