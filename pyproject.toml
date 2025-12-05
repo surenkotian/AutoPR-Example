@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "autopr"
-version = "0.3.0-beta"
+version = "0.4.0-beta"
 description = "AI-powered Pull Request Generator & Reviewer - Automate PR titles, descriptions, and code reviews"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -52,7 +52,6 @@ Changelog = "https://github.com/surenkotian/AutoPR/blob/main/CHANGELOG.md"
 
 [project.scripts]
 autopr = "autopr.cli:cli"
-pr-ai = "autopr.cli:cli"
 
 [tool.setuptools.packages.find]
 where = ["src"]
