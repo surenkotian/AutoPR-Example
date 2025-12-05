@@ -1,17 +1,25 @@
 # AutoPR — AI-powered Pull Request Generator & Reviewer
 
+[![PyPI version](https://badge.fury.io/py/autopr.svg)](https://pypi.org/project/autopr/)
 [![Try the demo](https://img.shields.io/badge/demo-autopr_demo-blue.svg)](https://github.com/your-user/autopr-demo)
 
 AutoPR automates the repetitive parts of pull requests for teams: it writes concise PR titles & descriptions, validates CI/tests, runs deterministic static and lint checks, and provides an AI-assisted review summary.
 
 ## Quickstart
 
-1. **Install dependencies:**
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   pip install -e .
-   ```
+### Install from PyPI (Recommended)
+
+```bash
+pip install autopr
+```
+
+### Install from Source
+
+```bash
+git clone https://github.com/surenkotian/AutoPR.git
+cd AutoPR
+pip install -e .
+```
 
 2. **Run the API server:**
    ```bash
