@@ -1,0 +1,43 @@
+site_name: AutoPR Documentation
+site_description: AI-powered Pull Request Generator & Reviewer
+site_author: AutoPR Team
+site_url: https://autopr.readthedocs.io/
+
+repo_name: surenkotian/AutoPR
+repo_url: https://github.com/surenkotian/AutoPR
+
+nav:
+  - Home: index.md
+  - Quickstart: quickstart.md
+  - CLI Reference: cli-reference.md
+  - PR Automation: pr-automation.md
+  - Demo Repository: demo-repo.md
+  - GitHub Actions Setup: github-actions.md
+  - Offline Mode: offline-mode.md
+
+theme:
+  name: material
+  palette:
+    primary: blue
+    accent: blue
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - toc.integrate
+    - search.suggest
+    - search.highlight
+
+plugins:
+  - search
+
+markdown_extensions:
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed
+  - pymdownx.tasklist
+  - pymdownx.tilde
+  - attr_list
+  - md_in_html
