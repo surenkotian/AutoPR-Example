@@ -357,5 +357,83 @@ def mock():
     click.echo("✓ Switched to stub provider for offline demos")
 
 
+@cli.command(name="suggest-reviewers")
+@click.option("--diff", required=False, help="Diff to analyze (optional, uses git diff if not provided)")
+def suggest_reviewers(diff: str | None):
+    """Suggest reviewers based on code changes"""
+    import subprocess
+    from collections import Counter
+
+    click.echo("🔍 Analyzing code changes...")
+
+    # Get diff if not provided
+    if not diff:
+        try:
+            result = subprocess.run(["git", "diff", "--cached"], capture_output=True, text=True, check=True)
+            diff = result.stdout
+            if not diff:
+                result = subprocess.run(["git", "diff"], capture_output=True, text=True, check=True)
+                diff = result.stdout
+        except subprocess.CalledProcessError:
+            click.echo("✗ Could not get git diff")
+            return
+
+    # Extract changed files
+    lines = diff.split('\n')
+    changed_files = []
+    for line in lines:
+        if line.startswith('diff --git'):
+            parts = line.split()
+            if len(parts) >= 3:
+                file_path = parts[2].lstrip('b/')
+                changed_files.append(file_path)
+
+    if not changed_files:
+        click.echo("✗ No changed files found")
+        return
+
+    click.echo(f"📁 Found {len(changed_files)} changed files")
+
+    # Get commit history for these files
+    author_counts = Counter()
+    for file_path in changed_files:
+        try:
+            result = subprocess.run(
+                ["git", "log", "--pretty=format:%an", "--", file_path],
+                capture_output=True, text=True, check=True
+            )
+            authors = result.stdout.strip().split('\n')
+            author_counts.update(authors)
+        except subprocess.CalledProcessError:
+            continue
+
+    # Get overall repo contributors as fallback
+    if not author_counts:
+        try:
+            result = subprocess.run(
+                ["git", "log", "--pretty=format:%an", "-n", "50"],
+                capture_output=True, text=True, check=True
+            )
+            authors = result.stdout.strip().split('\n')
+            author_counts.update(authors)
+        except subprocess.CalledProcessError:
+            pass
+
+    if not author_counts:
+        click.echo("✗ No commit history found")
+        return
+
+    # Suggest top contributors
+    suggestions = author_counts.most_common(3)
+
+    click.echo("\n👥 Suggested reviewers:")
+    for author, count in suggestions:
+        click.echo(f"  • {author} ({count} commits in related files)")
+
+    # Fallback suggestion
+    if not suggestions:
+        click.echo("  • Repository owner (fallback)")
+
+
 if __name__ == "__main__":
     cli()
