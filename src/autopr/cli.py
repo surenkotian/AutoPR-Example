@@ -252,6 +252,25 @@ def configure():
     with open(config_path, 'w') as f:
         json.dump(config, f, indent=2)
 
+    # Also set AUTOPR_PROVIDER in .env
+    env_path = ".env"
+    env_lines = []
+
+    # Read existing .env if it exists
+    if os.path.exists(env_path):
+        with open(env_path, 'r') as f:
+            env_lines = f.readlines()
+
+    # Remove existing AUTOPR_PROVIDER line
+    env_lines = [line for line in env_lines if not line.startswith("AUTOPR_PROVIDER=")]
+
+    # Add AUTOPR_PROVIDER
+    env_lines.append(f"AUTOPR_PROVIDER={provider}\n")
+
+    # Write back to .env
+    with open(env_path, 'w') as f:
+        f.writelines(env_lines)
+
     click.echo("✓ Configuration updated")
 
 
@@ -260,6 +279,9 @@ def doctor():
     """Check system health and requirements"""
     import sys
     import subprocess
+
+    # Reload environment variables
+    load_dotenv(override=True)
 
     issues = []
 
