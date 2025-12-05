@@ -11,6 +11,9 @@ from autopr import reviewer
 from autopr.generator import generate_pr_from
 from autopr import analysis
 
+# Load environment variables from .env file
+load_dotenv()
+
 
 @click.group()
 def cli():
@@ -218,23 +221,24 @@ def configure():
     if provider != "stub":
         token = questionary.password(f"Enter your {provider.upper()} API key:").ask()
         if token:
-            # Update .env
+            # Update .env file
             env_path = ".env"
-            env_vars = {}
+            env_lines = []
+
+            # Read existing .env if it exists
             if os.path.exists(env_path):
-                from dotenv import load_dotenv
-                load_dotenv(env_path)
-                env_vars = dict(os.environ)
+                with open(env_path, 'r') as f:
+                    env_lines = f.readlines()
 
-            if provider == "openai":
-                env_vars["OPENAI_API_KEY"] = token
-            elif provider == "anthropic":
-                env_vars["ANTHROPIC_API_KEY"] = token
+            # Remove existing API key lines
+            env_lines = [line for line in env_lines if not line.startswith(f"{provider.upper()}_API_KEY=")]
 
+            # Add the new API key
+            env_lines.append(f"{provider.upper()}_API_KEY={token}\n")
+
+            # Write back to .env
             with open(env_path, 'w') as f:
-                for k, v in env_vars.items():
-                    if k.startswith(('OPENAI_', 'ANTHROPIC_', 'AUTOPR_')):
-                        f.write(f"{k}={v}\n")
+                f.writelines(env_lines)
 
     mode = questionary.select(
         "Use async mode for API calls?",
