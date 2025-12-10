@@ -26,5 +26,5 @@ jobs:
           # this uses autopr CLI to review the PR diff (the GITHUB event contains the PR info on runner)
           git fetch origin ${{ github.event.pull_request.base.ref }} --depth=1
           git diff origin/${{ github.event.pull_request.base.ref }}..${{ github.sha }} > demo_pr.diff || true
-          pr-ai review --diff "$(cat demo_pr.diff)" --commits "" --issue ""
+          autopr review --diff "$(cat demo_pr.diff)" --commits "" --issue ""
 *** End Patch
