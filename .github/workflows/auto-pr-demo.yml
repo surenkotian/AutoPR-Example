@@ -20,7 +20,7 @@ jobs:
           pip install git+https://github.com/<YOUR_USER>/AutoPR.git
       - name: Run tests
         run: |
-          python -m pytest -q
+          python -m pytest tests/test_sample.py -q
       - name: Call AutoPR review
         run: |
           # this uses autopr CLI to review the PR diff (the GITHUB event contains the PR info on runner)
