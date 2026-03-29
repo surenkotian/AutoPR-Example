@@ -22,13 +22,13 @@ AutoPR automates the repetitive parts of pull requests for development teams. It
 pip install autopr
 
 # Initialize
-pr-ai init
+autopr init
 
 # Generate PR description
-pr-ai gen --diff "+ def add(a, b): return a + b" --commits "feat: add math helper"
+autopr gen --diff "+ def add(a, b): return a + b" --commits "feat: add math helper"
 
 # Review code changes
-pr-ai review --diff "print('debug')" --test-log pytest.log
+autopr review --diff "print('debug')" --test-log pytest.log
 ```
 
 ## 📖 Documentation Sections

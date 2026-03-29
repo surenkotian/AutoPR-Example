@@ -20,10 +20,10 @@ AutoPR includes a deterministic "stub" provider that returns consistent mock res
 
 ```bash
 # Initialize if not done
-pr-ai init
+autopr init
 
 # Switch to stub provider
-pr-ai mock
+autopr mock
 ```
 
 Or manually edit `.autopr.json`:
@@ -42,7 +42,7 @@ Or manually edit `.autopr.json`:
 
 **Input:**
 ```bash
-pr-ai gen --diff "+ def hello(): return 'world'" --commits "feat: add greeting"
+autopr gen --diff "+ def hello(): return 'world'" --commits "feat: add greeting"
 ```
 
 **Output:**
@@ -62,7 +62,7 @@ pr-ai gen --diff "+ def hello(): return 'world'" --commits "feat: add greeting"
 
 **Input:**
 ```bash
-pr-ai review --diff "print('debug')"
+autopr review --diff "print('debug')"
 ```
 
 **Output:**
@@ -116,10 +116,10 @@ result = generate_pr_from("test diff", ["test commit"])
 
 ```bash
 # Development (stub)
-pr-ai mock
+autopr mock
 
 # Production (real API)
-pr-ai configure
+autopr configure
 # Select openai/anthropic and enter API key
 ```
 
@@ -127,10 +127,10 @@ pr-ai configure
 
 ```bash
 # CI/CD - use stub for testing
-AUTOPR_PROVIDER=stub pr-ai gen --diff "test"
+AUTOPR_PROVIDER=stub autopr gen --diff "test"
 
 # Local development - use real API
-pr-ai configure  # Sets up real provider
+autopr configure  # Sets up real provider
 ```
 
 ## 📊 Stub vs Real Providers
@@ -156,13 +156,13 @@ For testing specific scenarios, you can modify the stub provider responses in `s
 # GitHub Actions
 - name: Test AutoPR (Stub)
   run: |
-    pr-ai mock
-    pr-ai gen --diff "+ test" > pr_output.json
+    autopr mock
+    autopr gen --diff "+ test" > pr_output.json
     # Validate JSON structure
 
 - name: Deploy AutoPR (Real)
   run: |
-    pr-ai configure --provider openai --key ${{ secrets.API_KEY }}
+    autopr configure --provider openai --key ${{ secrets.API_KEY }}
     # Production deployment
 ```
 
@@ -181,7 +181,7 @@ ENV AUTOPR_PROVIDER=stub
 COPY . /app
 WORKDIR /app
 
-CMD ["pr-ai", "gen", "--diff", "sample diff"]
+CMD ["autopr", "gen", "--diff", "sample diff"]
 ```
 
 ## 🎯 Use Cases

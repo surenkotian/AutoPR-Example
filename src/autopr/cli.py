@@ -117,10 +117,123 @@ def review(diff: str, commits: tuple[str, ...], issue: str | None, test_log: str
 @cli.command(name="analyze")
 @click.option("--diff", required=True, help="Diff or code snippet")
 @click.option("--lang", required=False, default="python", help="Language for analysis (default: python)")
-def analyze(diff: str, lang: str):
+@click.option("--file-path", required=False, help="Optional file path for context")
+@click.option("--summary", is_flag=True, help="Show summary statistics")
+def analyze(diff: str, lang: str, file_path: str | None, summary: bool):
     """Run the static analyzer on a diff or snippet and print findings."""
-    out = analysis.analyze_diff(diff, language=lang)
-    click.echo(json.dumps(out, indent=2))
+    click.echo("🔬 Running enhanced static analysis...")
+    result = analysis.analyze_diff(diff, language=lang, file_path=file_path)
+    
+    # Display findings
+    click.echo(f"📊 Found {result['summary']['total_findings']} findings")
+    
+    # Show summary if requested
+    if summary:
+        click.echo("\n📈 Summary by severity:")
+        for severity, count in result['summary']['by_severity'].items():
+            click.echo(f"  {severity}: {count}")
+        
+        click.echo("\n🔍 Summary by type:")
+        for finding_type, count in result['summary']['by_type'].items():
+            click.echo(f"  {finding_type}: {count}")
+        
+        if result.get('diff_info'):
+            diff_info = result['diff_info']
+            click.echo("\n📝 Diff information:")
+            click.echo(f"  Files changed: {diff_info.get('files_changed', 0)}")
+            click.echo(f"  Lines added: {diff_info.get('lines_added', 0)}")
+            click.echo(f"  Lines deleted: {diff_info.get('lines_deleted', 0)}")
+    
+    # Show findings
+    if result['findings']:
+        click.echo("\n🔍 Findings:")
+        for finding in result['findings']:
+            severity_emoji = {"info": "ℹ️", "warning": "⚠️", "critical": "🚨"}.get(finding['severity'], "📝")
+            line_info = f":{finding['line']}" if finding.get('line') else ""
+            click.echo(f"  {severity_emoji} [{finding['severity'].upper()}] {finding['type']}{line_info}: {finding['message']}")
+            if finding.get('code_snippet'):
+                click.echo(f"    Code: {finding['code_snippet']}")
+    else:
+        click.echo("✅ No issues found!")
+    
+    click.echo("\n" + json.dumps(result, indent=2))
+
+
+@cli.command(name="analyze-files")
+@click.option("--directory", required=True, help="Directory to analyze")
+@click.option("--pattern", required=False, default="*.py", help="File pattern to match (default: *.py)")
+@click.option("--summary", is_flag=True, help="Show summary statistics")
+def analyze_files(directory: str, pattern: str, summary: bool):
+    """Analyze multiple files in a directory."""
+    import glob
+    import os
+    
+    click.echo(f"🔍 Scanning directory: {directory}")
+    
+    # Find matching files
+    search_pattern = os.path.join(directory, "**", pattern)
+    files = glob.glob(search_pattern, recursive=True)
+    
+    if not files:
+        click.echo(f"❌ No files found matching pattern: {pattern}")
+        return
+    
+    click.echo(f"📁 Found {len(files)} files to analyze")
+    
+    # Read file contents
+    file_contents = {}
+    for file_path in files:
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+                file_contents[file_path] = content
+        except Exception as e:
+            click.echo(f"⚠️  Warning: Could not read {file_path}: {e}")
+    
+    if not file_contents:
+        click.echo("❌ No readable files found")
+        return
+    
+    click.echo("🔬 Running batch static analysis...")
+    result = analysis.batch_analyze_files(file_contents)
+    
+    # Display results
+    click.echo(f"📊 Analyzed {result['files_analyzed']} files")
+    click.echo(f"🔍 Found {result['total_findings']} total findings")
+    
+    if summary:
+        click.echo("\n📈 Overall summary by severity:")
+        for severity, count in result['overall_summary']['by_severity'].items():
+            click.echo(f"  {severity}: {count}")
+        
+        click.echo("\n🔍 Overall summary by type:")
+        for finding_type, count in result['overall_summary']['by_type'].items():
+            click.echo(f"  {finding_type}: {count}")
+    
+    # Show critical findings first
+    critical_findings = [f for f in result['findings'] if f['severity'] == 'critical']
+    if critical_findings:
+        click.echo(f"\n🚨 Critical findings ({len(critical_findings)}):")
+        for finding in critical_findings:
+            line_info = f":{finding['line']}" if finding.get('line') else ""
+            click.echo(f"  🚨 [CRITICAL] {finding['type']}{line_info}: {finding['message']}")
+            if finding.get('file_path'):
+                click.echo(f"    File: {finding['file_path']}")
+    
+    # Show warnings
+    warning_findings = [f for f in result['findings'] if f['severity'] == 'warning']
+    if warning_findings and len(warning_findings) <= 10:  # Limit to avoid spam
+        click.echo(f"\n⚠️  Warnings ({len(warning_findings)}):")
+        for finding in warning_findings:
+            line_info = f":{finding['line']}" if finding.get('line') else ""
+            click.echo(f"  ⚠️  [WARNING] {finding['type']}{line_info}: {finding['message']}")
+            if finding.get('file_path'):
+                click.echo(f"    File: {finding['file_path']}")
+    
+    if len(warning_findings) > 10:
+        click.echo(f"\n⚠️  ... and {len(warning_findings) - 10} more warnings (see JSON output)")
+    
+    click.echo("\n" + json.dumps(result, indent=2))
 
 
 @cli.command(name="ci-parse")
@@ -194,7 +307,7 @@ OPENAI_API_KEY=your-openai-key-here
 
     click.echo(f"✓ Created {config_path}")
     click.echo(f"✓ Created {env_path}")
-    click.echo("Run 'pr-ai configure' to set up your API keys")
+    click.echo("Run 'autopr configure' to set up your API keys")
 
 
 @cli.command(name="configure")
@@ -287,48 +400,48 @@ def doctor():
 
     # Check Python version
     if sys.version_info >= (3, 10):
-        click.echo("✓ Python version >= 3.10")
+        click.echo("[OK] Python version >= 3.10")
     else:
-        issues.append("✗ Python version < 3.10")
+        issues.append("[ERROR] Python version < 3.10")
 
     # Check git
     try:
         subprocess.run(["git", "--version"], capture_output=True, check=True)
-        click.echo("✓ Git installed")
+        click.echo("[OK] Git installed")
     except:
-        issues.append("✗ Git not installed")
+        issues.append("[ERROR] Git not installed")
 
     # Check if git repo
     try:
         subprocess.run(["git", "status"], capture_output=True, check=True, cwd=".")
-        click.echo("✓ Directory is a git repository")
+        click.echo("[OK] Directory is a git repository")
     except:
-        issues.append("✗ Not a git repository")
+        issues.append("[ERROR] Not a git repository")
 
     # Check token
     provider = os.getenv("AUTOPR_PROVIDER", "openai")
     token_env = f"{provider.upper()}_API_KEY"
     if os.getenv(token_env) or provider == "stub":
-        click.echo(f"✓ {token_env} available")
+        click.echo(f"[OK] {token_env} available")
     else:
-        issues.append(f"✗ {token_env} not set")
+        issues.append(f"[ERROR] {token_env} not set")
 
     # Check writable
     try:
         with open(".autopr_test", 'w') as f:
             f.write("test")
         os.remove(".autopr_test")
-        click.echo("✓ Directory is writable")
+        click.echo("[OK] Directory is writable")
     except:
-        issues.append("✗ Directory not writable")
+        issues.append("[ERROR] Directory not writable")
 
     if issues:
         click.echo("\nIssues found:")
         for issue in issues:
             click.echo(issue)
-        click.echo("\nRun 'pr-ai configure' to fix configuration issues")
+        click.echo("\nRun 'autopr configure' to fix configuration issues")
     else:
-        click.echo("\n✓ All systems ready!")
+        click.echo("\n[SUCCESS] All systems ready!")
 
 
 @cli.command(name="hooks")
@@ -380,7 +493,7 @@ def mock():
     with open(config_path, 'w') as f:
         json.dump(config, f, indent=2)
 
-    click.echo("✓ Switched to stub provider for offline demos")
+    click.echo("[OK] Switched to stub provider for offline demos")
 
 
 @cli.command(name="suggest-reviewers")

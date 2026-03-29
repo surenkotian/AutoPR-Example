@@ -11,7 +11,7 @@ What it looks for
 
 How it's used
 - Automatically run in the API `/review` endpoint for Python diffs and merged into the reported findings.
-- Available as a CLI command: `pr-ai analyze --diff "..." --lang python`.
+- Available as a CLI command: `autopr analyze --diff "..." --lang python`.
 
 Extending it
 - This is intentionally conservative and easy to extend — add rules in `src/autopr/analysis.py` and add corresponding tests under `tests/`.

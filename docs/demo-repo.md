@@ -50,16 +50,16 @@ cd AutoPR-Example
 pip install autopr
 
 # Initialize
-pr-ai init
+autopr init
 
 # Use stub provider for offline demo
-pr-ai mock
+autopr mock
 
 # Generate PR for sample changes
-pr-ai gen --diff "+ def multiply(a, b): return a * b"
+autopr gen --diff "+ def multiply(a, b): return a * b"
 
 # Review sample code
-pr-ai review --diff "print('debug')"
+autopr review --diff "print('debug')"
 ```
 
 ## 🎬 Demo Scenarios
@@ -131,12 +131,12 @@ jobs:
 ### Local Development
 ```bash
 # Set up environment
-pr-ai init
-pr-ai configure
+autopr init
+autopr configure
 
 # Process existing PR
-pr-ai gen --diff "$(git diff origin/main)"
-pr-ai review --diff "$(git diff origin/main)"
+autopr gen --diff "$(git diff origin/main)"
+autopr review --diff "$(git diff origin/main)"
 ```
 
 ## 🎯 Learning Objectives

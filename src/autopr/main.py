@@ -1,5 +1,5 @@
-from typing import List, Optional
-from fastapi import FastAPI
+from typing import List, Optional, Dict, Any
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from loguru import logger
 
@@ -15,6 +15,41 @@ class GenerateRequest(BaseModel):
     diff: str = Field(..., example="+ def add(a, b):\n+     return a + b")
     commits: List[str] = Field(..., example=["feat: add helper for math"])
     issue: Optional[str] = Field(None, example="#123")
+
+
+class AnalysisRequest(BaseModel):
+    diff: str = Field(..., example="+ def add(a, b):\n+     return a + b")
+    language: str = Field(default="python", example="python")
+    file_path: Optional[str] = Field(None, example="src/module.py")
+
+
+class BatchAnalysisRequest(BaseModel):
+    files: Dict[str, str] = Field(..., example={"src/main.py": "print('hello')", "src/utils.py": "import os"})
+
+
+class AnalysisFinding(BaseModel):
+    type: str
+    message: str
+    severity: str
+    line: Optional[int] = None
+    column: Optional[int] = None
+    code_snippet: Optional[str] = None
+    file_path: Optional[str] = None
+
+
+class AnalysisResponse(BaseModel):
+    language: str
+    findings: List[AnalysisFinding]
+    summary: Dict[str, Any]
+    diff_info: Dict[str, Any] = {}
+
+
+class BatchAnalysisResponse(BaseModel):
+    files_analyzed: int
+    total_findings: int
+    findings: List[AnalysisFinding]
+    file_summaries: Dict[str, Any]
+    overall_summary: Dict[str, Any]
 
 
 class ReviewRequest(BaseModel):
@@ -46,7 +81,144 @@ class ReviewResponse(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "service": "AutoPR Enhanced Static Analysis"}
+
+
+@app.post("/analyze", response_model=AnalysisResponse, summary="Static Analysis", response_description="Enhanced static analysis results")
+def analyze_code(req: AnalysisRequest):
+    """Perform enhanced static analysis on code diff or snippet.
+    
+    This endpoint provides comprehensive static analysis without requiring any AI calls.
+    It analyzes Python code for:
+    - Unused imports
+    - Function complexity
+    - Missing docstrings
+    - Risky patterns (eval, exec, bare except)
+    - Code quality issues
+    - Security vulnerabilities
+    """
+    logger.info(f"Analyzing {req.language} code...")
+    
+    try:
+        result = analysis.analyze_diff(
+            diff_text=req.diff,
+            language=req.language,
+            file_path=req.file_path
+        )
+        
+        # Convert to response model
+        findings = [AnalysisFinding(**finding) for finding in result['findings']]
+        
+        return AnalysisResponse(
+            language=result['language'],
+            findings=findings,
+            summary=result['summary'],
+            diff_info=result.get('diff_info', {})
+        )
+    except Exception as e:
+        logger.error(f"Analysis failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+
+
+@app.post("/analyze/batch", response_model=BatchAnalysisResponse, summary="Batch Analysis", response_description="Batch static analysis results for multiple files")
+def analyze_files_batch(req: BatchAnalysisRequest):
+    """Perform static analysis on multiple files in batch.
+    
+    This endpoint analyzes multiple files at once and provides
+    consolidated results with file-by-file breakdowns.
+    """
+    logger.info(f"Analyzing {len(req.files)} files...")
+    
+    try:
+        result = analysis.batch_analyze_files(req.files)
+        
+        # Convert to response model
+        findings = [AnalysisFinding(**finding) for finding in result['findings']]
+        
+        return BatchAnalysisResponse(
+            files_analyzed=result['files_analyzed'],
+            total_findings=result['total_findings'],
+            findings=findings,
+            file_summaries=result['file_summaries'],
+            overall_summary=result['overall_summary']
+        )
+    except Exception as e:
+        logger.error(f"Batch analysis failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Batch analysis failed: {str(e)}")
+
+
+@app.get("/analysis/rules", summary="Analysis Rules", response_description="List of supported analysis rules")
+def get_analysis_rules():
+    """Get information about supported static analysis rules."""
+    rules = {
+        "imports": {
+            "unused_import": {
+                "description": "Detect unused imports",
+                "severity": "info",
+                "category": "code_quality"
+            }
+        },
+        "complexity": {
+            "high_complexity": {
+                "description": "Functions with high cyclomatic complexity (>10)",
+                "severity": "warning",
+                "category": "maintainability"
+            },
+            "deep_nesting": {
+                "description": "Functions with deep nesting (>4 levels)",
+                "severity": "warning",
+                "category": "maintainability"
+            }
+        },
+        "documentation": {
+            "missing_function_docstring": {
+                "description": "Functions without docstrings",
+                "severity": "info",
+                "category": "documentation"
+            },
+            "missing_class_docstring": {
+                "description": "Classes without docstrings",
+                "severity": "info",
+                "category": "documentation"
+            }
+        },
+        "security": {
+            "dangerous_function": {
+                "description": "Use of eval() or exec() functions",
+                "severity": "critical",
+                "category": "security"
+            },
+            "bare_except": {
+                "description": "Bare except clauses that catch all exceptions",
+                "severity": "warning",
+                "category": "error_handling"
+            }
+        },
+        "code_quality": {
+            "debug_print": {
+                "description": "Debug print statements",
+                "severity": "info",
+                "category": "debugging"
+            },
+            "todo_comment": {
+                "description": "TODO/FIXME comments",
+                "severity": "info",
+                "category": "documentation"
+            },
+            "none_equality_comparison": {
+                "description": "Using ==/!= instead of is/is not for None comparisons",
+                "severity": "warning",
+                "category": "code_style"
+            }
+        }
+    }
+    
+    return {
+        "rules": rules,
+        "supported_languages": ["python"],
+        "severity_levels": ["info", "warning", "critical"],
+        "analysis_types": ["diff", "file", "batch"]
+    }
 
 
 @app.post("/generate", response_model=GenerateResponse, summary="Generate PR", response_description="Auto-generated PR description")

@@ -23,7 +23,7 @@ pip install -e .
 1. **Initialize AutoPR configuration:**
 
 ```bash
-pr-ai init
+autopr init
 ```
 
 This creates:
@@ -33,7 +33,7 @@ This creates:
 2. **Configure your LLM provider:**
 
 ```bash
-pr-ai configure
+autopr configure
 ```
 
 Choose your provider and enter API keys:
@@ -46,7 +46,7 @@ Choose your provider and enter API keys:
 ### Generate PR Description
 
 ```bash
-pr-ai gen --diff "+ def add(a, b): return a + b" --commits "feat: add math helper"
+autopr gen --diff "+ def add(a, b): return a + b" --commits "feat: add math helper"
 ```
 
 **Output:**
@@ -66,7 +66,7 @@ pr-ai gen --diff "+ def add(a, b): return a + b" --commits "feat: add math helpe
 ### Review Code Changes
 
 ```bash
-pr-ai review --diff "print('debug')" --test-log pytest.log
+autopr review --diff "print('debug')" --test-log pytest.log
 ```
 
 **Output:**
@@ -82,7 +82,7 @@ pr-ai review --diff "print('debug')" --test-log pytest.log
 ### Check System Health
 
 ```bash
-pr-ai doctor
+autopr doctor
 ```
 
 **Output:**
@@ -103,23 +103,23 @@ pr-ai doctor
 ```bash
 # Generate PR from current changes
 git add .
-pr-ai gen
+autopr gen
 
 # Review staged changes
-pr-ai review
+autopr review
 
 # Get reviewer suggestions
-pr-ai suggest-reviewers
+autopr suggest-reviewers
 ```
 
 ### CI/CD Integration
 
 ```bash
 # Parse test results
-pr-ai ci-parse --log test-results.log
+autopr ci-parse --log test-results.log
 
 # Compare coverage
-pr-ai coverage-compare --before coverage_before.txt --after coverage_after.txt
+autopr coverage-compare --before coverage_before.txt --after coverage_after.txt
 ```
 
 ## 🌐 API Usage
@@ -136,13 +136,13 @@ Visit [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) for interactive A
 
 ### Common Issues
 
-**"Command not found: pr-ai"**
+**"Command not found: autopr"**
 - Ensure AutoPR is installed: `pip install autopr`
 - Check your PATH includes Python scripts directory
 
 **"API key not found"**
-- Run `pr-ai configure` to set up your API keys
-- Or use `pr-ai mock` for offline testing
+- Run `autopr configure` to set up your API keys
+- Or use `autopr mock` for offline testing
 
 **"Git repository not found"**
 - Ensure you're in a git repository directory
@@ -154,7 +154,7 @@ Enable debug logging:
 
 ```bash
 export AUTOPR_DEBUG=true
-pr-ai gen --diff "test"
+autopr gen --diff "test"
 ```
 
 ## 📚 Next Steps

@@ -11,24 +11,24 @@ All commands support:
 
 ## 🔧 Setup Commands
 
-### `pr-ai init`
+### `autopr init`
 
 Initialize AutoPR configuration in the current directory.
 
 ```bash
-pr-ai init
+autopr init
 ```
 
 **Creates:**
 - `.autopr.json` - Configuration file
 - `.env.example` - Environment template
 
-### `pr-ai configure`
+### `autopr configure`
 
 Interactive configuration setup.
 
 ```bash
-pr-ai configure
+autopr configure
 ```
 
 **Prompts for:**
@@ -36,12 +36,12 @@ pr-ai configure
 - API key input (if not stub)
 - Sync/async mode preference
 
-### `pr-ai doctor`
+### `autopr doctor`
 
 Check system health and requirements.
 
 ```bash
-pr-ai doctor
+autopr doctor
 ```
 
 **Checks:**
@@ -51,35 +51,35 @@ pr-ai doctor
 - API key availability
 - Directory write permissions
 
-### `pr-ai hooks install`
+### `autopr hooks install`
 
 Install pre-commit hooks.
 
 ```bash
-pr-ai hooks install
+autopr hooks install
 ```
 
 **Creates:**
 - `.git/hooks/pre-commit` - Runs static analysis and tests
 
-### `pr-ai mock`
+### `autopr mock`
 
 Switch to offline stub provider.
 
 ```bash
-pr-ai mock
+autopr mock
 ```
 
 **Use case:** Offline demos and testing without API keys.
 
 ## 🚀 Core Commands
 
-### `pr-ai gen`
+### `autopr gen`
 
 Generate PR title and description.
 
 ```bash
-pr-ai gen [OPTIONS]
+autopr gen [OPTIONS]
 ```
 
 **Options:**
@@ -90,19 +90,19 @@ pr-ai gen [OPTIONS]
 
 **Example:**
 ```bash
-pr-ai gen \
+autopr gen \
   --diff "+ def add(a, b): return a + b" \
   --commits "feat: add math helper" \
   --issue "#123" \
   --open-browser
 ```
 
-### `pr-ai review`
+### `autopr review`
 
 Perform AI-assisted code review.
 
 ```bash
-pr-ai review [OPTIONS]
+autopr review [OPTIONS]
 ```
 
 **Options:**
@@ -115,19 +115,19 @@ pr-ai review [OPTIONS]
 
 **Example:**
 ```bash
-pr-ai review \
+autopr review \
   --diff "print('debug')" \
   --test-log results/pytest.log \
   --coverage-before coverage_before.txt \
   --coverage-after coverage_after.txt
 ```
 
-### `pr-ai analyze`
+### `autopr analyze`
 
 Run static analysis on code.
 
 ```bash
-pr-ai analyze [OPTIONS]
+autopr analyze [OPTIONS]
 ```
 
 **Options:**
@@ -136,17 +136,17 @@ pr-ai analyze [OPTIONS]
 
 **Example:**
 ```bash
-pr-ai analyze --diff "+ def foo(): pass" --lang python
+autopr analyze --diff "+ def foo(): pass" --lang python
 ```
 
 ## 📊 Validation Commands
 
-### `pr-ai ci-parse`
+### `autopr ci-parse`
 
 Parse CI/test logs.
 
 ```bash
-pr-ai ci-parse [OPTIONS]
+autopr ci-parse [OPTIONS]
 ```
 
 **Options:**
@@ -154,15 +154,15 @@ pr-ai ci-parse [OPTIONS]
 
 **Example:**
 ```bash
-pr-ai ci-parse --log test-output.log
+autopr ci-parse --log test-output.log
 ```
 
-### `pr-ai coverage-compare`
+### `autopr coverage-compare`
 
 Compare coverage reports.
 
 ```bash
-pr-ai coverage-compare [OPTIONS]
+autopr coverage-compare [OPTIONS]
 ```
 
 **Options:**
@@ -171,17 +171,17 @@ pr-ai coverage-compare [OPTIONS]
 
 **Example:**
 ```bash
-pr-ai coverage-compare \
+autopr coverage-compare \
   --before coverage_main.txt \
   --after coverage_pr.txt
 ```
 
-### `pr-ai validate-issue`
+### `autopr validate-issue`
 
 Check if changes align with issue.
 
 ```bash
-pr-ai validate-issue [OPTIONS]
+autopr validate-issue [OPTIONS]
 ```
 
 **Options:**
@@ -191,7 +191,7 @@ pr-ai validate-issue [OPTIONS]
 
 **Example:**
 ```bash
-pr-ai validate-issue \
+autopr validate-issue \
   --issue "Fix login bug" \
   --diff "+ if user: login(user)" \
   --commits "fix: handle user login"
@@ -199,12 +199,12 @@ pr-ai validate-issue \
 
 ## 👥 Collaboration Commands
 
-### `pr-ai suggest-reviewers`
+### `autopr suggest-reviewers`
 
 Suggest reviewers based on code changes.
 
 ```bash
-pr-ai suggest-reviewers [OPTIONS]
+autopr suggest-reviewers [OPTIONS]
 ```
 
 **Options:**
@@ -212,7 +212,7 @@ pr-ai suggest-reviewers [OPTIONS]
 
 **Example:**
 ```bash
-pr-ai suggest-reviewers
+autopr suggest-reviewers
 ```
 
 **Output:**

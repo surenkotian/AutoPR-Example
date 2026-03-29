@@ -7,9 +7,14 @@ from . import analysis, lint, validators
 from . import ci_parser, coverage_utils, issue_validator
 
 
-def review_pr(diff: str, commits: list[str] | None = None, issue_text: str | None = None, test_log: str | None = None, coverage_before: str | None = None, coverage_after: str | None = None) -> Dict[str, Any]:
-    # LLM review (may return dict or raw)
-    raw = llm.review_code(diff)
+def review_pr(diff: str, commits: list[str] | None = None, issue_text: str | None = None, test_log: str | None = None, coverage_before: str | None = None, coverage_after: str | None = None, use_senior_prompt: bool = True) -> Dict[str, Any]:
+    # Use senior-level prompt for better quality reviews
+    if use_senior_prompt:
+        from .prompts import SENIOR_ENGINEER_REVIEW_PROMPT
+        raw = llm.review_code_with_prompt(diff, SENIOR_ENGINEER_REVIEW_PROMPT)
+    else:
+        raw = llm.review_code(diff)
+    
     if isinstance(raw, dict):
         review = raw
     else:
@@ -25,15 +30,34 @@ def review_pr(diff: str, commits: list[str] | None = None, issue_text: str | Non
     lint_findings = lint.run_basic_lint(diff)
 
     findings: List[Dict[str, Any]] = []
+    
+    # Parse and enhance LLM findings with line references
     for f in review.get("findings", []):
-        # already expected shape or massage
-        findings.append({"type": f.get("type", "ai"), "message": f.get("message", str(f)), "severity": f.get("severity") if isinstance(f, dict) else None})
+        enhanced_finding = {
+            "type": f.get("type", "ai"), 
+            "message": f.get("message", str(f)), 
+            "severity": f.get("severity"),
+            "line": f.get("line"),
+            "file": f.get("file"),
+            "action": f.get("action", "")
+        }
+        
+        # Add line reference if missing but extractable from message
+        if not enhanced_finding["line"] and "Line " in enhanced_finding["message"]:
+            import re
+            line_match = re.search(r'Line (\d+)', enhanced_finding["message"])
+            if line_match:
+                enhanced_finding["line"] = int(line_match.group(1))
+                # Clean message to remove line reference
+                enhanced_finding["message"] = re.sub(r'\s*\(Line \d+\)', '', enhanced_finding["message"]).strip()
+        
+        findings.append(enhanced_finding)
 
     # add static & lint findings
-    for sf in static_findings:
-        findings.append({"type": sf.get("type", "static"), "message": sf.get("message", ""), "severity": sf.get("severity")})
+    for sf in static_findings.get("findings", []):
+        findings.append({"type": sf.get("type", "static"), "message": sf.get("message", ""), "severity": sf.get("severity"), "line": sf.get("line"), "file": sf.get("file"), "action": sf.get("action", "")})
     for lf in lint_findings:
-        findings.append({"type": lf.get("type", "lint"), "message": lf.get("message", ""), "severity": lf.get("severity")})
+        findings.append({"type": lf.get("type", "lint"), "message": lf.get("message", ""), "severity": lf.get("severity"), "line": lf.get("line"), "file": lf.get("file"), "action": lf.get("action", "")})
 
     # parse test output if provided
     test_summary = None
