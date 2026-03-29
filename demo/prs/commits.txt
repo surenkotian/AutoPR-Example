@@ -1,2 +1,0 @@
-fix: accidentally changed add logic to subtraction
-refs: #42 - fix arithmetic

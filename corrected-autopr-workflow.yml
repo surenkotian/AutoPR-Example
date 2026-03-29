@@ -1,0 +1,113 @@
+name: AutoPR CI (Corrected)
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  autopr:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install AutoPR
+        run: |
+          python -m pip install --upgrade pip
+          pip install git+https://github.com/surenkotian/AutoPR.git
+
+      - name: Generate PR diff
+        run: |
+          git diff ${{ github.event.pull_request.base.sha }} ${{ github.sha }} > pr.diff
+          git log --pretty=format:%s ${{ github.event.pull_request.base.sha }}..${{ github.sha }} > commits.txt || true
+
+      - name: Run tests (optional)
+        run: |
+          python -m pytest -q --disable-warnings > pr_test.log || true
+
+      - name: Run AutoPR analysis
+        run: |
+          autopr review --diff "$(cat pr.diff)" --test-log pr_test.log --provider stub > review_output.json
+
+      - name: Generate PR title/description
+        run: |
+          autopr gen --diff "$(cat pr.diff)" --commits "$(cat commits.txt)" --provider stub > pr_output.json
+
+      - name: Post AutoPR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            // Read review results
+            let review = {};
+            let pr = {};
+
+            try {
+              if (fs.existsSync('review_output.json')) {
+                const reviewContent = fs.readFileSync('review_output.json', 'utf8');
+                review = JSON.parse(reviewContent);
+              }
+            } catch (e) {
+              console.log('No review output found');
+            }
+
+            try {
+              if (fs.existsSync('pr_output.json')) {
+                const prContent = fs.readFileSync('pr_output.json', 'utf8');
+                pr = JSON.parse(prContent);
+              }
+            } catch (e) {
+              console.log('No PR output found');
+            }
+
+            let message = `## 🤖 AutoPR — Automated PR Review\n\n`;
+
+            // PR generation
+            if (pr.title) {
+              message += `### 📝 Suggested PR Title\n**${pr.title}**\n\n`;
+            }
+
+            if (pr.what_changed) {
+              message += `### 🔍 What Changed\n${pr.what_changed}\n\n`;
+            }
+
+            // Review summary
+            if (review.summary) {
+              message += `### ✅ Review Summary\n${review.summary}\n\n`;
+            }
+
+            if (review.findings && review.findings.length > 0) {
+              message += `### 🔍 Findings\n`;
+              review.findings.slice(0, 10).forEach(f => {
+                message += `- **${f.type}**: ${f.message}\n`;
+              });
+              message += '\n';
+            }
+
+            // Test results
+            if (review._tests) {
+              const t = review._tests;
+              message += `### 🧪 Test Results\n`;
+              message += `- Passed: ${t.passed || 0}\n`;
+              message += `- Failed: ${t.failed || 0}\n`;
+              message += `- Errors: ${t.errors || 0}\n\n`;
+            }
+
+            message += `*This comment was generated automatically by AutoPR using stub provider.*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.payload.pull_request.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: message
+            })

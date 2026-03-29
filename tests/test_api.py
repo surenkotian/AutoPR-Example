@@ -1,8 +1,8 @@
+import os
+os.environ["AUTOPR_PROVIDER"] = "stub"
+
 from fastapi.testclient import TestClient
-
 from autopr.main import app
-
-
 client = TestClient(app)
 
 
